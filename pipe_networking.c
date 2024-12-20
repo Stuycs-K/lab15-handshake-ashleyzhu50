@@ -11,6 +11,10 @@
   =========================*/
 int server_setup() {
   int from_client = 0;
+  char * path = "./myWKP";
+  mkfifo(path, 0640);
+  int fd = open(path, O_RDONLY, 0644);
+  remove(path);
   return from_client;
 }
 
