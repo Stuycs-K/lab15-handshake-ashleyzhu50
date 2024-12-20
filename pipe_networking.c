@@ -13,9 +13,12 @@ int server_setup() {
   int from_client = 0;
   char * path = "./myWKP";
   mkfifo(path, 0640);
-  int fd = open(path, O_RDONLY, 0644);
+  open(path, O_RDONLY, 0644);
   remove(path);
-  return from_client;
+  char * privfifo;
+  sprintf(privfifo,"%d", getpid());
+  mkfifo(privfifo, 0640);
+  return open(privfifo);
 }
 
 /*=========================
@@ -29,6 +32,14 @@ int server_setup() {
   =========================*/
 int server_handshake(int *to_client) {
   int from_client;
+  char * privfifo; 
+  sprintf(privfifo,"%d", getpid());
+  mkfifo(privfifo, 0640); // make PP
+  char * path = "./myWKP";
+  mkfifo(path, 0640);
+  open(path, O_WRONLY, 0644); // open WKP
+  char buff[256];
+  read(server_setup, buff, 255);
   return from_client;
 }
 
