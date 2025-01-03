@@ -39,13 +39,12 @@ int server_handshake(int *to_client) {
   printf("sending SYN_ACK: %d\n", *sack);
   * to_client = open(pp, O_WRONLY,0); // open PP
   write(*to_client, sack, sizeof(int)); // send SYN_ACK
-  from_client = open(pp, O_RDONLY, 0644); 
+  // from_client = open(pp, O_RDONLY, 0644); 
   int * ack=malloc(sizeof(int));
   read(from_client, ack, sizeof(int));
-  printf("got ACK! %d \n", *ack);
+  printf("got ACK: %d \n", *ack);
   return from_client;
 }
-
 
 /*=========================
   client_handshake
@@ -61,18 +60,18 @@ int client_handshake(int *to_server) {
   char privfifo[256]; 
   sprintf(privfifo,"%d", getpid());
   mkfifo(privfifo, 0640); // make PP
-  int wkp_FD = open("./myWKP", O_WRONLY, 0644); // open WKP
+  *to_server = open("./myWKP", O_WRONLY, 0644); // open WKP
   printf("my PP: %s\n", privfifo);
-  write(wkp_FD, privfifo, 256); // write PP to WKP
+  write(*to_server, privfifo, 256); // write PP to WKP
   int readPPFD = open(privfifo, O_RDONLY, 0644); // open PP
   remove(privfifo); // delete PP
   int * ack=malloc(sizeof(int));
   read(readPPFD, ack, sizeof(int)); // read SYN_ACK
   printf("got SYN_ACK! %d\n", *ack); 
   * ack += 1;
-  printf("sending ack: %d \n", *ack);
-  int writePPFD = open(privfifo, O_WRONLY, 0644);
-  write(writePPFD, ack, sizeof(int)); // send ACK
+  printf("sending ACK: %d \n", *ack);
+  // int writePPFD = open(privfifo, O_WRONLY, 0644);
+  write(*to_server, ack, sizeof(int)); // send ACK
   printf("wrote it!\n");
   return from_server;
 }
