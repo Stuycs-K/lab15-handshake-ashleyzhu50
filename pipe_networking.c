@@ -12,13 +12,10 @@
 int server_setup() {
   int from_client = 0;
   char * path = "./myWKP";
-  mkfifo(path, 0640);
-  open(path, O_RDONLY, 0644);
-  remove(path);
-  char * privfifo;
-  sprintf(privfifo,"%d", getpid());
-  mkfifo(privfifo, 0640);
-  return open(privfifo);
+  mkfifo(path, 0640); // create WKP
+  from_client = open(path, O_RDONLY, 0644); // open WKP 
+  remove(path); //remove WKP
+  return from_client; // return upstream WKP
 }
 
 /*=========================
@@ -31,15 +28,21 @@ int server_setup() {
   returns the file descriptor for the upstream pipe (see server setup).
   =========================*/
 int server_handshake(int *to_client) {
-  int from_client;
-  char * privfifo; 
-  sprintf(privfifo,"%d", getpid());
-  mkfifo(privfifo, 0640); // make PP
-  char * path = "./myWKP";
-  mkfifo(path, 0640);
-  open(path, O_WRONLY, 0644); // open WKP
-  char buff[256];
-  read(server_setup, buff, 255);
+  int from_client=server_setup();
+  char pp[256]; 
+  // int readwkp = open("./myWKP", O_RDONLY, 0644);
+  read(from_client, pp, 256); // read SYN 
+  printf("got SYN: %s \n", pp);
+  int * sack=malloc(sizeof(int));
+  int r_file = open("/dev/random", O_RDONLY,0);
+  read(r_file, sack, sizeof(int)); // get random int
+  printf("sending SYN_ACK: %d\n", *sack);
+  * to_client = open(pp, O_WRONLY,0); // open PP
+  write(*to_client, sack, sizeof(int)); // send SYN_ACK
+  from_client = open(pp, O_RDONLY, 0644); 
+  int * ack=malloc(sizeof(int));
+  read(from_client, ack, sizeof(int));
+  printf("got ACK! %d \n", *ack);
   return from_client;
 }
 
@@ -55,6 +58,22 @@ int server_handshake(int *to_client) {
   =========================*/
 int client_handshake(int *to_server) {
   int from_server;
+  char privfifo[256]; 
+  sprintf(privfifo,"%d", getpid());
+  mkfifo(privfifo, 0640); // make PP
+  int wkp_FD = open("./myWKP", O_WRONLY, 0644); // open WKP
+  printf("my PP: %s\n", privfifo);
+  write(wkp_FD, privfifo, 256); // write PP to WKP
+  int readPPFD = open(privfifo, O_RDONLY, 0644); // open PP
+  remove(privfifo); // delete PP
+  int * ack=malloc(sizeof(int));
+  read(readPPFD, ack, sizeof(int)); // read SYN_ACK
+  printf("got SYN_ACK! %d\n", *ack); 
+  * ack += 1;
+  printf("sending ack: %d \n", *ack);
+  int writePPFD = open(privfifo, O_WRONLY, 0644);
+  write(writePPFD, ack, sizeof(int)); // send ACK
+  printf("wrote it!\n");
   return from_server;
 }
 
