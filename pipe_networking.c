@@ -33,7 +33,7 @@ int server_handshake(int *to_client) {
   int from_client=server_setup();
   char pp[256]; 
   read(from_client, pp, 256); // read SYN 
-  printf("got SYN: %s \n", pp);
+  // printf("got SYN: %s \n", pp);
   int * sack=malloc(sizeof(int));
   int * ack=malloc(sizeof(int));
   int r_file = open("/dev/random", O_RDONLY,0);
@@ -41,15 +41,16 @@ int server_handshake(int *to_client) {
   while(1){
     read(r_file, sack, sizeof(int)); // get random int
     *sack = abs(*sack)% 101;
-    printf("sending SYN_ACK: %d\n", *sack);
+    // printf("sending SYN_ACK: %d\n", *sack);
     write(*to_client, sack, sizeof(int)); // send SYN_ACK 
     if(read(from_client, ack, sizeof(int))<=0){
       break;
     }
-    printf("got ACK: %d \n", *ack);
+    // printf("got ACK: %d \n", *ack);
     sleep(1);
     signal(SIGPIPE,SIG_IGN);
   }
+  exit(0);
   close(*to_client);
   return from_client;
 }
@@ -69,18 +70,18 @@ int client_handshake(int *to_server) {
   sprintf(privfifo,"%d", getpid());
   mkfifo(privfifo, 0640); // make PP
   *to_server = open("./myWKP", O_WRONLY, 0644); // open WKP
-  printf("my PP: %s\n", privfifo);
+  // printf("my PP: %s\n", privfifo);
   write(*to_server, privfifo, 256); // write PP to WKP
   int * ack=malloc(sizeof(int));
   from_server = open(privfifo, O_RDONLY, 0644); // open PP
   remove(privfifo); // delete PP
-  while(1){
-  read(from_server, ack, sizeof(int)); // read SYN_ACK
-  printf("got SYN_ACK! %d\n", *ack); 
+  while(read(from_server, ack, sizeof(int))>0){
+  // read(from_server, ack, sizeof(int)); // read SYN_ACK
+  printf("%d\n", *ack); 
   * ack += 1;
-  printf("sending ACK: %d \n", *ack);
+  // printf("sending ACK: %d \n", *ack);
   write(*to_server, ack, sizeof(int)); // send ACK
-  printf("wrote it!\n");
+  // printf("wrote it!\n");
   }
   return from_server;
 }
@@ -94,9 +95,26 @@ int client_handshake(int *to_server) {
 
   returns the file descriptor for the downstream pipe.
   =========================*/
-int server_connect(int from_client) {
-  int to_client  = 0;
-  return to_client;
+int server_connect(int *to_client, int from_client) {
+  char pp[256]; 
+  read(from_client, pp, 256); // read SYN 
+  // printf("got SYN: %s \n", pp);
+  int * sack=malloc(sizeof(int));
+  int * ack=malloc(sizeof(int));
+  int r_file = open("/dev/random", O_RDONLY,0);
+  * to_client = open(pp, O_WRONLY,0); // open PP
+  while(1){
+    read(r_file, sack, sizeof(int)); // get random int
+    *sack = abs(*sack)% 101;
+    // printf("sending SYN_ACK: %d\n", *sack);
+    write(*to_client, sack, sizeof(int)); // send SYN_ACK 
+    if(read(from_client, ack, sizeof(int))<=0){
+      break;
+    }
+    // printf("got ACK: %d \n", *ack);
+    sleep(1);
+    signal(SIGPIPE,SIG_IGN);
+  }
+  close(*to_client);
+  return from_client;
 }
-
-
