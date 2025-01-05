@@ -1,6 +1,8 @@
 #include "pipe_networking.h"
+#include "signal.h"
 //UPSTREAM = to the server / from the client
 //DOWNSTREAM = to the client / from the server
+
 /*=========================
   server_setup
 
@@ -41,10 +43,14 @@ int server_handshake(int *to_client) {
     *sack = abs(*sack)% 101;
     printf("sending SYN_ACK: %d\n", *sack);
     write(*to_client, sack, sizeof(int)); // send SYN_ACK 
-    read(from_client, ack, sizeof(int));
+    if(read(from_client, ack, sizeof(int))<=0){
+      break;
+    }
     printf("got ACK: %d \n", *ack);
     sleep(1);
+    signal(SIGPIPE,SIG_IGN);
   }
+  close(*to_client);
   return from_client;
 }
 
